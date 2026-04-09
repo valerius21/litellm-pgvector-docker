@@ -1,0 +1,53 @@
+# pgvector + litellm-pgvector only
+# Usage: docker compose -f docker-compose.standalone.yml up -d
+#
+# Intended for use with an external LiteLLM proxy.
+# Set EMBEDDING__BASE_URL in .env to point to your external proxy.
+#
+# Services:
+#   pgvector         - PostgreSQL with pgvector extension (database: vectors)
+#   litellm-pgvector - Vector store API (connects to vectors DB, uses external litellm proxy)
+
+services:
+  pgvector:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    shm_size: 1g
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vectors}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${PGVECTOR_PORT:-5432}:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+      - ./init-db/standalone:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-vectors}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  litellm-pgvector:
+    build:
+      context: .
+      args:
+        LITELLM_PGVECTOR_REF: ${LITELLM_PGVECTOR_REF:-main}
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD}@pgvector:5432/${POSTGRES_DB:-vectors}"
+      SERVER_API_KEY: ${SERVER_API_KEY:?Set SERVER_API_KEY in .env}
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      EMBEDDING__MODEL: ${EMBEDDING__MODEL:-text-embedding-ada-002}
+      EMBEDDING__BASE_URL: ${EMBEDDING__BASE_URL:?Set EMBEDDING__BASE_URL in .env}
+      EMBEDDING__API_KEY: ${EMBEDDING__API_KEY:-}
+      EMBEDDING__DIMENSIONS: "${EMBEDDING__DIMENSIONS:-1536}"
+    depends_on:
+      pgvector:
+        condition: service_healthy
+
+volumes:
+  pgvector_data:
