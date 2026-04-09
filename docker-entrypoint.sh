@@ -17,6 +17,9 @@ until pg_isready -h pgvector -p 5432 -U "${POSTGRES_USER:-app}" -d "${POSTGRES_D
 done
 echo "Database is ready!"
 
+echo "Ensuring pgvector extension exists..."
+PGPASSWORD="${POSTGRES_PASSWORD}" psql -h pgvector -p 5432 -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-vectors}" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
 echo "Running database migrations..."
 RETRY_COUNT=0
 until prisma db push --skip-generate --accept-data-loss; do
