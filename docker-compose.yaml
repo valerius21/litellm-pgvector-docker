@@ -17,8 +17,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-vectors}
       POSTGRES_USER: ${POSTGRES_USER:-app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    ports:
-      - "${PGVECTOR_PORT:-5432}:5432"
+    # Port not exposed - internal use only
     volumes:
       - pgvector_data:/var/lib/postgresql/data
       - ./init-db/standalone:/docker-entrypoint-initdb.d:ro
@@ -35,7 +34,7 @@ services:
         LITELLM_PGVECTOR_REF: ${LITELLM_PGVECTOR_REF:-main}
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "8080:8000"
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD}@pgvector:5432/${POSTGRES_DB:-vectors}"
       SERVER_API_KEY: ${SERVER_API_KEY:?Set SERVER_API_KEY in .env}
