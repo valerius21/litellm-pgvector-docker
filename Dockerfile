@@ -1,5 +1,3 @@
-ARG LITELLM_PGVECTOR_REF=main
-
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-RUN git clone --depth 1 --branch ${LITELLM_PGVECTOR_REF} \
+RUN git clone --depth 1 --branch main \
     https://github.com/BerriAI/litellm-pgvector.git . \
     && rm -rf .git
 
