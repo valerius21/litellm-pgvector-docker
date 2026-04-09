@@ -20,6 +20,12 @@ echo "Database is ready!"
 echo "Ensuring pgvector extension exists..."
 PGPASSWORD="${POSTGRES_PASSWORD}" psql -h pgvector -p 5432 -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-vectors}" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
 
+# Alter vector column dimensions if EMBEDDING__DIMENSIONS is set and differs from current schema
+if [ -n "${EMBEDDING__DIMENSIONS:-}" ]; then
+    echo "Altering embedding dimensions to ${EMBEDDING__DIMENSIONS}..."
+    PGPASSWORD="${POSTGRES_PASSWORD}" psql -h pgvector -p 5432 -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-vectors}" -c "ALTER TABLE embeddings ALTER COLUMN embedding TYPE vector(${EMBEDDING__DIMENSIONS}) USING embedding::vector(${EMBEDDING__DIMENSIONS});" || echo "Note: Could not alter embeddings column (may not exist yet or data incompatible)"
+fi
+
 echo "Running database migrations..."
 RETRY_COUNT=0
 until prisma db push --skip-generate --accept-data-loss; do
